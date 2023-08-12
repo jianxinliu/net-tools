@@ -21,9 +21,9 @@ func main() {
 	err := wails.Run(&options.App{
 		Title:     "pathlive-net-tool(" + VERSION + ")",
 		Width:     1024,
-		Height:    768,
+		Height:    868,
 		MinWidth:  1024,
-		MinHeight: 768,
+		MinHeight: 868,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},

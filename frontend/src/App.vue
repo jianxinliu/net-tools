@@ -2,29 +2,33 @@
   <div class="root">
     <div class="setting">
       <div>
-        <span>目标地址:</span><input type="text" v-model="dest">
+        <span>目标地址:</span><input type="text" v-model="dest" :disabled="detecting">
       </div>
       <div>
-        <span>探测次数:</span><input type="number" v-model="count" :disabled="tillCut">
-        <span>持续探测</span><input type="checkbox" v-model="tillCut" />
+        <span>探测次数:</span><input type="number" v-model="count" :disabled="tillCut || detecting" style="width: 40px;">
+        <span>持续探测</span><input type="checkbox" v-model="tillCut" :disabled="detecting" />
       </div>
       <div class="item">
-        <span>探测间隔（秒）:</span><input type="number" min="0.1" step="0.1" v-model="intervalSec">
+        <span>探测间隔（秒）:</span><input type="number" min="0.1" step="0.1" v-model="intervalSec" :disabled="detecting"
+          style="width: 40px;">
       </div>
       <div class="item" v-if="!isPing">
-        <span>最大跳数:</span><input type="number" min="1" max="10" step="1" v-model="maxHops">
+        <span>最大跳数:</span><input type="number" min="1" max="10" step="1" v-model="maxHops" :disabled="detecting"
+          style="width: 40px;">
       </div>
     </div>
     <div class="switch">
-      PING: <input type="checkbox" name="type" id="ping" :checked="isPing" @change="checkBoxChange">
-      MTR: <input type="checkbox" name="type" id="mtr" :checked="!isPing" @change="checkBoxChange">
+      PING: <input type="checkbox" name="type" id="ping" :checked="isPing" @change="checkBoxChange" :disabled="detecting">
+      MTR: <input type="checkbox" name="type" id="mtr" :checked="!isPing" @change="checkBoxChange" :disabled="detecting">
     </div>
     <div class="logo">
-      <button class="start" @click="startDetect">开始探测</button>
-      <button class="stop" @click="stopDetect">停止探测</button>
+      <button class="start" @click="startDetect" :disabled="detecting">开始</button>
+      <button class="stop" @click="stopDetect">停止</button>
     </div>
-    <div v-if="detectType === PingType.PING" class="tab">
+    <div v-show="isPing" class="tab">
+      <div class="loading" v-if="detecting">{{ detectingText }}</div>
       <div class="pingRet">
+        <span class="descValue">{{ chartData.yData.length }}</span>
         <span>发送：</span><span class="descValue">{{ pingStat.send }}</span>
         <span>接收：</span><span class="descValue">{{ pingStat.recv }}</span>
         <span>最小：</span><span class="descValue">{{ pingStat.min }} Ms</span>
@@ -35,8 +39,9 @@
       </div>
       <div id="chart"></div>
     </div>
-    <div v-else class="tab">
-      MTR On {{ dest }}
+    <div v-show="!isPing" class="tab">
+      MTR: {{ dest }}
+      <div class="loading" v-if="detecting">{{ detectingText }}</div>
       <table border="1">
         <tr>
           <th>IP</th>
@@ -64,18 +69,20 @@
 <script lang="ts" setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { Mtr, Ping } from '../wailsjs/go/main/App'
-import { EventsEmit, EventsOn, EventsOnMultiple } from '../wailsjs/runtime/runtime'
+import { EventsEmit, EventsOn } from '../wailsjs/runtime/runtime'
 import * as echarts from 'echarts'
 import { MtrRow, PingType } from './def';
 
 const detectType = ref<PingType>(PingType.PING)
 const isPing = computed(() => detectType.value === PingType.PING)
+const detecting = ref(false)
+const detectingText = computed(() => detecting.value ? '探测中...' : '')
 
 const dest = ref('www.baidu.com')
 const count = ref(50)
 const tillCut = ref(true)
 const intervalSec = ref(0.2)
-const maxHops = ref(6)
+const maxHops = ref(4)
 const pingStat = reactive({
   recv: 0,
   send: 0,
@@ -90,7 +97,7 @@ const mtrTable = reactive({
   table: Array<MtrRow>()
 })
 
-let chart = null as any
+let chart: echarts.ECharts
 const chartData = reactive({
   xData: Array<string>(),
   yData: Array<number>()
@@ -99,6 +106,7 @@ const chartData = reactive({
 async function startDetect() {
   const cnt = tillCut.value ? -1 : count.value
   const interval = intervalSec.value * 1000
+  detecting.value = true
   if (isPing.value) {
     ping(cnt, interval)
   } else {
@@ -110,6 +118,14 @@ async function startDetect() {
 async function ping(cnt: number, interval: number) {
   chartData.xData = []
   chartData.yData = []
+  pingStat.send = 0
+  pingStat.recv = 0
+  pingStat.loss = 0
+  pingStat.min = 0
+  pingStat.avg = 0
+  pingStat.max = 0
+  pingStat.std = 0
+
   Ping(cnt, interval, dest.value)
 }
 
@@ -119,6 +135,7 @@ async function mtr(cnt: number, interval: number) {
 }
 
 function stopDetect() {
+  detecting.value = false
   if (isPing.value) {
     stopPing()
   } else {
@@ -142,7 +159,7 @@ EventsOn('PING', (d: string) => {
   const ptr = JSON.parse(d)
   chartData.xData.push(ptr.TimeStr as string)
   chartData.yData.push(toMs(ptr.Rtt))
-  chart.setOption({
+  const option = {
     series: [
       {
         data: chartData.yData
@@ -151,7 +168,12 @@ EventsOn('PING', (d: string) => {
     xAxis: {
       data: chartData.xData
     }
-  })
+  } as echarts.EChartsOption
+  if (chartData.yData.length > 100) {
+    option.animation = false;
+    (option.series as Array<echarts.LineSeriesOption>)[0].sampling = 'max'
+  }
+  chart.setOption(option)
 })
 
 EventsOn("PING_STAT", (d: string) => {
@@ -163,6 +185,8 @@ EventsOn("PING_STAT", (d: string) => {
   pingStat.avg = toMs(stat.AvgRtt)
   pingStat.max = toMs(stat.MaxRtt)
   pingStat.std = toMs(stat.StdDevRtt)
+
+  detecting.value = false
 })
 
 EventsOn("MTR_INIT", (d: string) => {
@@ -192,7 +216,8 @@ const options = {
   },
   tooltip: {
     trigger: 'axis',
-    formatter: '第 {b} 个 <br> {c} ms',
+    formatter: '📌{b} <br> ⏰{c} ms',
+    className: 'tooltip'
   },
   grid: {
     left: '5%',
@@ -228,10 +253,10 @@ const options = {
       data: chartData.yData
     }
   ]
-}
+} as echarts.EChartsOption
 
 onMounted(() => {
-  chart = echarts.init(document.getElementById('chart'))
+  chart = echarts.init(document.getElementById('chart'), null, { renderer: 'svg' })
   chart.setOption(options)
 })
 
@@ -240,12 +265,62 @@ const toMs = (time: any): number => parseFloat(((time as number) / 1000 / 1000).
 </script>
 
 <style>
+html {
+  --borderRadius: 5px
+}
+
 .root {
   padding: 20px;
 }
 
+.root button:disabled,
+.root input:disabled {
+  cursor: not-allowed;
+  background: lightgray;
+}
+
+.setting {
+  border: 1px solid lightgray;
+  padding: 5px 10px;
+  margin: 5px;
+  border-radius: 15px;
+}
+
 input {
   margin-left: 8px;
+  border-radius: var(--borderRadius);
+  border: 1px solid lightgray;
+  margin-right: 3px;
+}
+
+.loading {
+  font-weight: bold;
+  width: 150px;
+  height: 25px;
+  padding: 2px 12px;
+  user-select: none;
+  margin: 4px auto;
+  border: 1px solid lightgray;
+  border-radius: var(--borderRadius);
+  animation-name: loading-s;
+  animation-duration: 1s;
+  animation-fill-mode: backwards;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+
+@keyframes loading-s {
+  0% {
+    font-size: 12px;
+    color: gray;
+  }
+
+  100% {
+    font-size: 18px;
+    color: black;
+    padding: 2px 16px;
+    border-radius: 10px;
+  }
 }
 
 #logo {
@@ -283,11 +358,12 @@ input {
 }
 
 #chart {
-  width: 80%;
+  width: 95%;
   height: 500px;
   padding: 4px;
   border: 1px solid lightgray;
   margin: 10px auto;
+  border-radius: var(--borderRadius);
 }
 
 .setting div {
@@ -298,7 +374,7 @@ input {
 }
 
 .descValue {
-  padding: 4px 10px;
+  padding: 4px 5px;
   padding-left: 4px;
   margin-right: 5px;
   font-weight: bold;
@@ -314,8 +390,19 @@ input {
 table {
   margin: auto;
 }
-td, th {
+
+td,
+th {
   padding: 2px 10px;
   text-align: center;
+}
+
+.tooltip {
+  --c: red;
+  border-radius: 100px;
+  background: var(--c);
+  margin-right: 2px;
+  color: var(--c);
+  text-align: left;
 }
 </style>
