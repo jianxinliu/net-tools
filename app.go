@@ -50,6 +50,6 @@ func (a *App) Ping(count int, interval int, dest string) string {
 	return Ping(a.ctx, count, time.Duration(interval), dest)
 }
 
-func (a *App) Mtr(count int, interval int, dest string) {
-	Mtr(a.ctx, dest, count, time.Duration(interval))
+func (a *App) Mtr(count, interval, maxHops int, dest string) {
+	Mtr(a.ctx, dest, count, maxHops, time.Duration(interval))
 }

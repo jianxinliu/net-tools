@@ -7,11 +7,12 @@ import (
 	"os/exec"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 )
 
-func Hoplist(host string) []net.IP {
-	ips, err := runTraceCmd(host)
+func Hoplist(host string, maxHops int) []net.IP {
+	ips, err := runTraceCmd(host, maxHops)
 	if err != nil {
 		fmt.Printf("trace router failed, %v", err)
 		return []net.IP{}
@@ -111,20 +112,21 @@ func Hoplist(host string) []net.IP {
 const winRtPattern = "(\\d{1,3})\\s.*?((\\d{1,3}\\.){3}\\d{1,3})"
 const darwinRtPattern = "(\\d{1,3})\\s.*?((\\d{1,3}\\.){3}\\d{1,3}).*$"
 
-func getTraceInfo(host string) (*exec.Cmd, string) {
+func getTraceInfo(host string, maxHops int) (*exec.Cmd, string) {
 	platform := runtime.GOOS
+	max := strconv.Itoa(maxHops)
+	// no name resolve, max hop is max
 	if Global.IsWindows {
-		return exec.Command("tracert", "-d", host), winRtPattern
+		return exec.Command("tracert", "-d", "-h", max, host), winRtPattern
 	} else if Global.IsDarwin {
-		// no name resolve, max hop is 6
-		return exec.Command("traceroute", "-n", "-m", "6", host), darwinRtPattern
+		return exec.Command("traceroute", "-n", "-m", max, host), darwinRtPattern
 	} else {
 		return nil, fmt.Sprintf("not supported system %s", platform)
 	}
 }
 
-func runTraceCmd(host string) ([]net.IP, error) {
-	cmd, regPattern := getTraceInfo(host)
+func runTraceCmd(host string, maxHops int) ([]net.IP, error) {
+	cmd, regPattern := getTraceInfo(host, maxHops)
 
 	buf := &bytes.Buffer{}
 	cmd.Stdout = buf

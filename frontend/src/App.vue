@@ -11,6 +11,9 @@
       <div class="item">
         <span>探测间隔（秒）:</span><input type="number" min="0.1" step="0.1" v-model="intervalSec">
       </div>
+      <div class="item" v-if="!isPing">
+        <span>最大跳数:</span><input type="number" min="1" max="10" step="1" v-model="maxHops">
+      </div>
     </div>
     <div class="switch">
       PING: <input type="checkbox" name="type" id="ping" :checked="isPing" @change="checkBoxChange">
@@ -72,6 +75,7 @@ const dest = ref('www.baidu.com')
 const count = ref(50)
 const tillCut = ref(true)
 const intervalSec = ref(0.2)
+const maxHops = ref(6)
 const pingStat = reactive({
   recv: 0,
   send: 0,
@@ -111,7 +115,7 @@ async function ping(cnt: number, interval: number) {
 
 async function mtr(cnt: number, interval: number) {
   mtrTable.table = []
-  Mtr(cnt, interval, dest.value)
+  Mtr(cnt, interval, maxHops.value, dest.value)
 }
 
 function stopDetect() {

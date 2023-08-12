@@ -24,8 +24,8 @@ type MtrRow struct {
 	Recv int64
 }
 
-func Mtr(ctx context.Context, host string, count int, interval time.Duration) {
-	hops := Hoplist(host)
+func Mtr(ctx context.Context, host string, count, maxHops int, interval time.Duration) {
+	hops := Hoplist(host, maxHops)
 
 	fmt.Println("trace start.....")
 

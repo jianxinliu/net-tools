@@ -3,6 +3,6 @@
 
 export function Greet(arg1:string):Promise<string>;
 
-export function Mtr(arg1:number,arg2:number,arg3:string):Promise<void>;
+export function Mtr(arg1:number,arg2:number,arg3:number,arg4:string):Promise<void>;
 
 export function Ping(arg1:number,arg2:number,arg3:string):Promise<string>;
