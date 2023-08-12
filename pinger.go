@@ -38,14 +38,11 @@ func Ping(ctx context.Context, count int, intervalMills time.Duration, dest stri
 	pinger = p
 
 	go func() {
-		select {
-		case <-ctx.Done():
-			fmt.Println("app stop....")
-			pinger.Stop()
-		}
+		<-ctx.Done()
+		fmt.Println("app stop....")
 	}()
 
-	if Win == "1" {
+	if Global.IsWindows {
 		pinger.SetPrivileged(true)
 	}
 

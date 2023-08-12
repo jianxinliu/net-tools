@@ -7,4 +7,4 @@ build-mac:
 	wails build -clean --platform darwin/arm64 -o Pathlive-Net-Tool -upx
 
 build-windows:
-	wails build -clean -platform windows/arm64 -o Pathlive-Net-Tool.exe -ldflags "-X 'main.Win=1'"
+	wails build -clean -platform windows/386 -o Pathlive-Net-Tool.exe -ldflags "-X 'main.Win=1'"

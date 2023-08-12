@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"runtime"
 	"time"
 )
 
@@ -11,8 +12,21 @@ type App struct {
 	ctx context.Context
 }
 
+type Env struct {
+	IsWindows bool
+	IsDarwin  bool
+}
+
+var Global = Env{}
+
 // NewApp creates a new App application struct
 func NewApp() *App {
+	if runtime.GOOS == "windows" {
+		Global.IsWindows = true
+	}
+	if runtime.GOOS == "darwin" {
+		Global.IsDarwin = true
+	}
 	return &App{}
 }
 
@@ -34,4 +48,8 @@ func (a *App) Greet(name string) string {
 
 func (a *App) Ping(count int, interval int, dest string) string {
 	return Ping(a.ctx, count, time.Duration(interval), dest)
+}
+
+func (a *App) Mtr(count int, interval int, dest string) {
+	Mtr(a.ctx, dest, count, time.Duration(interval))
 }
