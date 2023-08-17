@@ -160,6 +160,10 @@ EventsOn('PING', (d: string) => {
   chartData.xData.push(ptr.TimeStr as string)
   chartData.yData.push(toMs(ptr.Rtt))
   const option = {
+    title: {
+      left: 'center',
+      text: `ping ${dest.value}`
+    },
     series: [
       {
         data: chartData.yData
@@ -230,7 +234,6 @@ const options = {
         yAxisIndex: false
       },
       restore: {},
-      saveAsImage: {},
     }
   },
   xAxis: {

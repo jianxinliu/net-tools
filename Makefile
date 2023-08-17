@@ -4,7 +4,7 @@ dev:
 	wails dev
 
 build-mac:
-	wails build -clean --platform darwin/arm64 -o Pathlive-Net-Tool -upx
+	wails build -clean --platform darwin/arm64 -o Pathlive-Net-Tool
 
 build-windows-arm64:
 	wails build -clean -platform windows/arm64 -o Pathlive-Net-Tool-arm64.exe
