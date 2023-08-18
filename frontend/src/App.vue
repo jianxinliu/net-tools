@@ -18,8 +18,8 @@
       </div>
     </div>
     <div class="switch">
-      PING: <input type="checkbox" name="type" id="ping" :checked="isPing" @change="checkBoxChange" :disabled="detecting">
-      MTR: <input type="checkbox" name="type" id="mtr" :checked="!isPing" @change="checkBoxChange" :disabled="detecting">
+      <button id="ping" :class="pingClassList" :disabled="detecting" @click="checkBoxChange">PING</button>
+      <button id="mtr" :class="mtrClassList" :disabled="detecting" @click="checkBoxChange">MTR</button>
     </div>
     <div class="logo">
       <button class="start" @click="startDetect" :disabled="detecting">开始</button>
@@ -77,6 +77,8 @@ const detectType = ref<PingType>(PingType.PING)
 const isPing = computed(() => detectType.value === PingType.PING)
 const detecting = ref(false)
 const detectingText = computed(() => detecting.value ? '探测中...' : '')
+const pingClassList = computed(() => detectType.value === PingType.PING ? 'optionBtn active' : 'optionBtn')
+const mtrClassList = computed(() => detectType.value === PingType.MTR ? 'optionBtn active' : 'optionBtn')
 
 const dest = ref('www.baidu.com')
 const count = ref(50)
@@ -294,6 +296,22 @@ input {
   border-radius: var(--borderRadius);
   border: 1px solid lightgray;
   margin-right: 3px;
+}
+
+.optionBtn {
+  line-height: 20px;
+  width: 300px;
+  font-size: 15px;
+  border: 1px solid lightgray;
+  border-radius: var(--borderRadius);
+  margin-left: 5px;
+}
+
+.active {
+  line-height: 25px;
+  font-weight: bold;
+  font-size: 18px;
+  background: lightskyblue;
 }
 
 .loading {
