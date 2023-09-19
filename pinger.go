@@ -28,11 +28,14 @@ func NewPacketInfo(pkt *probing.Packet) *PacketInfo {
 var pinger *probing.Pinger
 
 func Ping(ctx context.Context, count int, intervalMills time.Duration, dest string) string {
-	fmt.Print(dest + "HHHHH")
-
 	p, err := probing.NewPinger(dest)
 	if err != nil {
-		panic(err)
+		rt.MessageDialog(ctx, rt.MessageDialogOptions{
+			Message: err.Error(),
+			Title:   "出错啦",
+			Type:    rt.ErrorDialog,
+		})
+		return ""
 	}
 
 	pinger = p
@@ -78,12 +81,11 @@ func Ping(ctx context.Context, count int, intervalMills time.Duration, dest stri
 	}
 
 	fmt.Printf("PING %s (%s):\n", pinger.Addr(), pinger.IPAddr())
-	err = pinger.Run()
+	err = pinger.RunWithContext(ctx)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("end ping .....")
-	return dest + "HHHHHH"
+	return dest
 }
 
 func emitPing(ctx context.Context, str ...string) {
