@@ -8,7 +8,7 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 )
 
-const VERSION = "0.1"
+const VERSION = "0.2"
 
 //go:embed all:frontend/dist
 var assets embed.FS
@@ -19,7 +19,7 @@ func main() {
 
 	// Create application with options
 	err := wails.Run(&options.App{
-		Title:     "pathlive-net-tool(" + VERSION + ")",
+		Title:     "pathlive-net-tool(" + VERSION + ")" + "   直播快",
 		Width:     1024,
 		Height:    868,
 		MinWidth:  1024,

@@ -38,6 +38,8 @@
         <span>丢包：</span><span class="descValue">{{ pingStat.loss }} %</span>
       </div>
       <div id="chart"></div>
+      <div id="violator">异常值截图数：{{ violatorCount }}</div>
+      <div class="images"></div>
     </div>
     <div v-show="!isPing" class="tab">
       MTR: {{ dest }}
@@ -71,7 +73,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { Mtr, Ping } from '../wailsjs/go/main/App'
 import { EventsEmit, EventsOn } from '../wailsjs/runtime/runtime'
 import * as echarts from 'echarts'
-import { MtrRow, PingType } from './def';
+import { checkSpec, MtrRow, PingType } from './def';
 
 const detectType = ref<PingType>(PingType.PING)
 const isPing = computed(() => detectType.value === PingType.PING)
@@ -94,6 +96,8 @@ const pingStat = reactive({
   avg: 0,
   std: 0
 })
+const checkCount = ref(0)
+const violatorCount = ref(0)
 
 const mtrTable = reactive({
   table: Array<MtrRow>()
@@ -128,6 +132,10 @@ async function ping(cnt: number, interval: number) {
   pingStat.max = 0
   pingStat.std = 0
 
+  const images = document.querySelector('.images')
+  Array.from(images?.children || []).forEach(child => images?.removeChild(child))
+  violatorCount.value = 0
+
   Ping(cnt, interval, dest.value)
 }
 
@@ -158,6 +166,7 @@ function checkBoxChange(evt: Event) {
 }
 
 EventsOn('PING', (d: string) => {
+  checkCount.value++
   const ptr = JSON.parse(d)
   chartData.xData.push(ptr.TimeStr as string)
   chartData.yData.push(toMs(ptr.Rtt))
@@ -175,11 +184,18 @@ EventsOn('PING', (d: string) => {
       data: chartData.xData
     }
   } as echarts.EChartsOption
-  if (chartData.yData.length > 100) {
+  if (chartData.yData.length > 1000) {
     option.animation = false;
     (option.series as Array<echarts.LineSeriesOption>)[0].sampling = 'max'
   }
   chart.setOption(option)
+  if (checkCount.value !== 0 && checkCount.value % 100 === 0) {
+    const over = checkSpec(chartData.yData, chart)
+    if (over) {
+      violatorCount.value++
+    }
+    checkCount.value = 0
+  }
 })
 
 EventsOn("PING_STAT", (d: string) => {
@@ -385,6 +401,27 @@ input {
   border: 1px solid lightgray;
   margin: 10px auto;
   border-radius: var(--borderRadius);
+}
+
+.images {
+  margin: 15px 5px;
+  padding: 5px;
+  border: 2px solid lightblue;
+  border-radius: var(--borderRadius);
+  height: 700px;
+  overflow-y: scroll;
+}
+
+.images>img {
+  margin: auto;
+  margin-bottom: 5px;
+  border: 1px solid lightcoral;
+  border-radius: var(--borderRadius);
+}
+
+#violator {
+  color: red;
+  font-weight: bold;
 }
 
 .setting div {
